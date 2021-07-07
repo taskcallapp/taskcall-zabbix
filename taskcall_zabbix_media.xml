@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.0</version>
+    <date>2021-07-02T12:42:48Z</date>
+    <media_types>
+        <media_type>
+            <name>TaskCall</name>
+            <type>WEBHOOK</type>
+            <parameters>
+                <parameter>
+                    <name>integrationkey</name>
+                    <value>&lt;put your integration key&gt;</value>
+                </parameter>
+                <parameter>
+                    <name>alertmessage</name>
+                    <value>{ALERT.MESSAGE}</value>
+                </parameter>
+                <parameter>
+                    <name>eventack</name>
+                    <value>{EVENT.ACK.STATUS}</value>
+                </parameter>
+                <parameter>
+                    <name>eventdate</name>
+                    <value>{EVENT.DATE}</value>
+                </parameter>
+                <parameter>
+                    <name>eventid</name>
+                    <value>{EVENT.ID}</value>
+                </parameter>
+                <parameter>
+                    <name>eventname</name>
+                    <value>{ALERT.SUBJECT}</value>
+                </parameter>
+                <parameter>
+                    <name>eventtags</name>
+                    <value>{EVENT.TAGS}</value>
+                </parameter>
+                <parameter>
+                    <name>eventtime</name>
+                    <value>{EVENT.TIME}</value>
+                </parameter>
+                <parameter>
+                    <name>eventupdate</name>
+                    <value>{EVENT.UPDATE.STATUS}</value>
+                </parameter>
+                <parameter>
+                    <name>eventvalue</name>
+                    <value>{EVENT.VALUE}</value>
+                </parameter>
+                <parameter>
+                    <name>eventsource</name>
+                    <value>{EVENT.SOURCE}</value>
+                </parameter>
+                <parameter>
+                    <name>hostip</name>
+                    <value>{HOST.IP}</value>
+                </parameter>
+                <parameter>
+                    <name>hostname</name>
+                    <value>{HOST.NAME}</value>
+                </parameter>
+                <parameter>
+                    <name>severity</name>
+                    <value>{EVENT.SEVERITY}</value>
+                </parameter>
+                <parameter>
+                    <name>triggerdesc</name>
+                    <value>{TRIGGER.DESCRIPTION}</value>
+                </parameter>
+                <parameter>
+                    <name>triggerid</name>
+                    <value>{TRIGGER.ID}</value>
+                </parameter>
+                <parameter>
+                    <name>triggeropdata</name>
+                    <value>{EVENT.OPDATA}</value>
+                </parameter>
+                <parameter>
+                    <name>url</name>
+                    <value>{$ZABBIX.URL}</value>
+                </parameter>
+            </parameters>
+
+            <script>
+try {&#13;
+    var params = JSON.parse(value);&#13;
+    var integKey = params.integrationkey;&#13;
+    var req = new CurlHttpRequest();&#13;
+    Zabbix.Log(4, 'TaskCall Webhook - Sending payload: ' + JSON.stringify(params));&#13;
+    if (typeof params.HTTPProxy === 'string' &amp;&amp; params.HTTPProxy.trim() !== '') {&#13;
+        req.SetProxy(params.HTTPProxy);&#13;
+    }&#13;
+    req.AddHeader('Content-Type: application/json');&#13;
+    resp = req.Post('https://integrations.taskcallapp.com/zabbix/' + integKey, JSON.stringify(params));&#13;
+    Zabbix.Log(4, 'Taskcall Webhook - Receiving response: ' + resp);&#13;
+    if (req.Status() != 200) {&#13;
+        throw resp.errors[0];&#13;
+    }&#13;
+    return 'OK';&#13;
+}&#13;
+catch (error) {&#13;
+    Zabbix.Log(3, 'TaskCall Webhook - Notification failed : ' + error);&#13;
+    throw 'TaskCall Webhook - Notification failed : ' + error;&#13;
+}&#13;
+            </script>
+
+            <description>
+Please refer to https://docs.taskcallapp.com/integrations/v1/zabbix-integration-guide.&#13;&#13;
+Place the integration key in the &lt;integrationkey&gt; parameter to integrate with the correct service.&#13;
+Set global macro {$ZABBIX.URL} with your Zabbix server URL.&#13;
+Add a dedicated user with the media type "TaskCall".
+            </description>
+
+            <message_templates>
+                <message_template>
+                    <event_source>TRIGGERS</event_source>
+                    <operation_mode>PROBLEM</operation_mode>
+                    <subject>Problem: {EVENT.NAME}</subject>
+                    <message>
+Problem started at {EVENT.TIME} on {EVENT.DATE}&#13;
+Problem name: {EVENT.NAME}&#13;
+Host: {HOST.NAME}&#13;
+Severity: {EVENT.SEVERITY}&#13;
+Operational data: {EVENT.OPDATA}&#13;
+Original problem ID: {EVENT.ID}&#13;
+{TRIGGER.URL}
+                    </message>
+                </message_template>
+                <message_template>
+                    <event_source>TRIGGERS</event_source>
+                    <operation_mode>RECOVERY</operation_mode>
+                    <subject>Resolved in {EVENT.DURATION}: {EVENT.NAME}</subject>
+                    <message>
+Problem has been resolved at {EVENT.RECOVERY.TIME} on {EVENT.RECOVERY.DATE}&#13;
+Problem name: {EVENT.NAME}&#13;
+Problem duration: {EVENT.DURATION}&#13;
+Host: {HOST.NAME}&#13;
+Severity: {EVENT.SEVERITY}&#13;
+Original problem ID: {EVENT.ID}&#13;
+{TRIGGER.URL}
+                    </message>
+                </message_template>
+                <message_template>
+                    <event_source>TRIGGERS</event_source>
+                    <operation_mode>UPDATE</operation_mode>
+                    <subject>Updated problem in {EVENT.AGE}: {EVENT.NAME}</subject>
+                    <message>
+{USER.FULLNAME} {EVENT.UPDATE.ACTION} problem at {EVENT.UPDATE.DATE} {EVENT.UPDATE.TIME}.&#13;
+{EVENT.UPDATE.MESSAGE}&#13;&#13;
+Current problem status is {EVENT.STATUS}, age is {EVENT.AGE}, acknowledged: {EVENT.ACK.STATUS}.&#13;
+                    </message>
+                </message_template>
+                <message_template>
+                    <event_source>DISCOVERY</event_source>
+                    <operation_mode>PROBLEM</operation_mode>
+                    <subject>Discovery: {DISCOVERY.DEVICE.STATUS} {DISCOVERY.DEVICE.IPADDRESS}</subject>
+                    <message>
+Discovery rule: {DISCOVERY.RULE.NAME}&#13;&#13;
+Device IP: {DISCOVERY.DEVICE.IPADDRESS}&#13;
+Device DNS: {DISCOVERY.DEVICE.DNS}&#13;
+Device status: {DISCOVERY.DEVICE.STATUS}&#13;
+Device uptime: {DISCOVERY.DEVICE.UPTIME}&#13;&#13;
+Device service name: {DISCOVERY.SERVICE.NAME}&#13;
+Device service port: {DISCOVERY.SERVICE.PORT}&#13;
+Device service status: {DISCOVERY.SERVICE.STATUS}&#13;
+Device service uptime: {DISCOVERY.SERVICE.UPTIME}
+                    </message>
+                </message_template>
+                <message_template>
+                    <event_source>AUTOREGISTRATION</event_source>
+                    <operation_mode>PROBLEM</operation_mode>
+                    <subject>Autoregistration: {HOST.HOST}</subject>
+                    <message>
+Host name: {HOST.HOST}&#13;
+Host IP: {HOST.IP}&#13;
+Agent port: {HOST.PORT}&#13;
+                    </message>
+                </message_template>
+            </message_templates>
+        </media_type>
+    </media_types>
+</zabbix_export>

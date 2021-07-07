@@ -1,0 +1,147 @@
+zabbix_export:
+  version: '5.4'
+  date: '2021-07-02T12:42:48Z'
+  media_types:
+    -
+      name: TaskCall
+      type: WEBHOOK
+      parameters:
+        -
+          name: integrationkey
+          value: '<put your integration key>'
+        -
+          name: alertmessage
+          value: '{ALERT.MESSAGE}'
+        -
+          name: eventack
+          value: '{EVENT.ACK.STATUS}'
+        -
+          name: eventdate
+          value: '{EVENT.DATE}'
+        -
+          name: eventid
+          value: '{EVENT.ID}'
+        -
+          name: eventname
+          value: '{ALERT.SUBJECT}'
+        -
+          name: eventtags
+          value: '{EVENT.TAGS}'
+        -
+          name: eventtime
+          value: '{EVENT.TIME}'
+        -
+          name: eventupdate
+          value: '{EVENT.UPDATE.STATUS}'
+        -
+          name: eventvalue
+          value: '{EVENT.VALUE}'
+        -
+          name: eventsource
+          value: '{EVENT.SOURCE}'
+        -
+          name: hostip
+          value: '{HOST.IP}'
+        -
+          name: hostname
+          value: '{HOST.NAME}'
+        -
+          name: severity
+          value: '{EVENT.SEVERITY}'
+        -
+          name: triggerdesc
+          value: '{TRIGGER.DESCRIPTION}'
+        -
+          name: triggerid
+          value: '{TRIGGER.ID}'
+        -
+          name: triggeropdata
+          value: '{EVENT.OPDATA}'
+        -
+          name: url
+          value: '{$ZABBIX.URL}'
+      script: |
+        try {
+            var params = JSON.parse(value);
+            var integKey = params.integrationkey;
+            var req = new CurlHttpRequest();
+            Zabbix.Log(4, 'TaskCall Webhook - Sending payload: ' + JSON.stringify(params));
+            if (typeof params.HTTPProxy === 'string' && params.HTTPProxy.trim() !== '') {
+                req.SetProxy(params.HTTPProxy);
+            }
+            req.AddHeader('Content-Type: application/json');
+            resp = req.Post('https://integrations.taskcallapp.com/zabbix/' + integKey, JSON.stringify(params));
+            Zabbix.Log(4, 'Taskcall Webhook - Receiving response: ' + resp);
+            if (req.Status() != 200) {
+                throw resp.errors[0];
+            }
+            return 'OK';
+        }
+        catch (error) {
+            Zabbix.Log(3, 'TaskCall Webhook - Notification failed : ' + error);
+            throw 'TaskCall Webhook - Notification failed : ' + error;
+        }
+      description: |
+        Please refer to https://docs.taskcallapp.com/integrations/v1/zabbix-integration-guide.
+
+        Place the integration key in the <integrationkey> parameter to integrate with the correct service.
+        Set global macro {$ZABBIX.URL} with your Zabbix server URL.
+        Add a dedicated user with the media type "TaskCall".
+      message_templates:
+        -
+          event_source: TRIGGERS
+          operation_mode: PROBLEM
+          subject: 'Problem: {EVENT.NAME}'
+          message: |
+            Problem started at {EVENT.TIME} on {EVENT.DATE}
+            Problem name: {EVENT.NAME}
+            Host: {HOST.NAME}
+            Severity: {EVENT.SEVERITY}
+            Operational data: {EVENT.OPDATA}
+            Original problem ID: {EVENT.ID}
+            {TRIGGER.URL}
+        -
+          event_source: TRIGGERS
+          operation_mode: RECOVERY
+          subject: 'Resolved in {EVENT.DURATION}: {EVENT.NAME}'
+          message: |
+            Problem has been resolved at {EVENT.RECOVERY.TIME} on {EVENT.RECOVERY.DATE}
+            Problem name: {EVENT.NAME}
+            Problem duration: {EVENT.DURATION}
+            Host: {HOST.NAME}
+            Severity: {EVENT.SEVERITY}
+            Original problem ID: {EVENT.ID}
+            {TRIGGER.URL}
+        -
+          event_source: TRIGGERS
+          operation_mode: UPDATE
+          subject: 'Updated problem in {EVENT.AGE}: {EVENT.NAME}'
+          message: |
+            {USER.FULLNAME} {EVENT.UPDATE.ACTION} problem at {EVENT.UPDATE.DATE} {EVENT.UPDATE.TIME}.
+            {EVENT.UPDATE.MESSAGE}
+
+            Current problem status is {EVENT.STATUS}, age is {EVENT.AGE}, acknowledged: {EVENT.ACK.STATUS}.
+        -
+          event_source: DISCOVERY
+          operation_mode: PROBLEM
+          subject: 'Discovery: {DISCOVERY.DEVICE.STATUS} {DISCOVERY.DEVICE.IPADDRESS}'
+          message: |
+            Discovery rule: {DISCOVERY.RULE.NAME}
+
+            Device IP: {DISCOVERY.DEVICE.IPADDRESS}
+            Device DNS: {DISCOVERY.DEVICE.DNS}
+            Device status: {DISCOVERY.DEVICE.STATUS}
+            Device uptime: {DISCOVERY.DEVICE.UPTIME}
+
+            Device service name: {DISCOVERY.SERVICE.NAME}
+            Device service port: {DISCOVERY.SERVICE.PORT}
+            Device service status: {DISCOVERY.SERVICE.STATUS}
+            Device service uptime: {DISCOVERY.SERVICE.UPTIME}
+        -
+          event_source: AUTOREGISTRATION
+          operation_mode: PROBLEM
+          subject: 'Autoregistration: {HOST.HOST}'
+          message: |
+            Host name: {HOST.HOST}
+            Host IP: {HOST.IP}
+            Agent port: {HOST.PORT}

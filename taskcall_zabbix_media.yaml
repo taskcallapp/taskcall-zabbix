@@ -64,15 +64,15 @@ zabbix_export:
         try {
             var params = JSON.parse(value);
             var integKey = params.integrationkey;
-            var req = new CurlHttpRequest();
+            var req = new HttpRequest();
             Zabbix.Log(4, 'TaskCall Webhook - Sending payload: ' + JSON.stringify(params));
             if (typeof params.HTTPProxy === 'string' && params.HTTPProxy.trim() !== '') {
-                req.SetProxy(params.HTTPProxy);
+                req.setProxy(params.HTTPProxy);
             }
-            req.AddHeader('Content-Type: application/json');
-            resp = req.Post('https://integrations.taskcallapp.com/zabbix/' + integKey, JSON.stringify(params));
+            req.addHeader('Content-Type: application/json');
+            resp = req.post('https://integrations.taskcallapp.com/zabbix/' + integKey, JSON.stringify(params));
             Zabbix.Log(4, 'Taskcall Webhook - Receiving response: ' + resp);
-            if (req.Status() != 200) {
+            if (req.getStatus() != 200) {
                 throw resp.errors[0];
             }
             return 'OK';
